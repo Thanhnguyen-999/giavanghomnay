@@ -1,42 +1,16 @@
 # Giá Vàng Hôm Nay
 
-Một ứng dụng Flutter hoàn chỉnh cho phép người dùng theo dõi giá vàng hiện nay, xem danh sách giá theo từng loại vàng, theo dõi giá tăng giảm và lưu các mặt hàng yêu thích.
+Ứng dụng giờ đã tích hợp API giá vàng thực tế (spot) và tỷ giá USD→VND để hiển thị giá tham khảo bằng VND/1 lượng.
 
-## Tính năng
+Nguồn dữ liệu (miễn phí, không cần API key):
+- Spot metals: https://api.metals.live/v1/spot
+- Tỷ giá USD→VND: https://api.exchangerate.host/latest?base=USD&symbols=VND
 
-- Tổng quan giá vàng hôm nay
-- Hiển thị giá mua, bán cho các loại vàng phổ biến
-- Danh sách yêu thích có thể bật/tắt
-- Giao diện hiện đại theo phong cách mobile
-- Dễ mở rộng cho tương lai: cập nhật API, báo động giá, lịch sử giá
+Lưu ý:
+- Các API bên thứ ba có thể thay đổi hoặc giới hạn truy cập; nếu bạn có API key cho dịch vụ khác (ví dụ Metals-API, GoldAPI), mình có thể chuyển sang dùng API đó.
+- Kết quả hiển thị là giá tham khảo (quy đổi từ USD/oz → VND/lượng). Bạn có thể tinh chỉnh quy đổi hoặc nguồn dữ liệu nếu cần.
 
-## Cài đặt
+Cách chạy:
+1. flutter pub get
+2. flutter run
 
-1. Cài đặt Flutter SDK: https://flutter.dev/docs/get-started/install
-2. Clone repo:
-
-```bash
-git clone https://github.com/Thanhnguyen-999/giavanghomnay.git
-cd giavanghomnay
-```
-
-3. Cài đặt dependencies:
-
-```bash
-flutter pub get
-```
-
-4. Chạy ứng dụng:
-
-```bash
-flutter run
-```
-
-## Cấu trúc project
-
-- `lib/main.dart`: toàn bộ giao diện và logic ứng dụng
-- `test/widget_test.dart`: smoke test cơ bản để kiểm tra app khởi chạy
-
-## Mục tiêu
-
-Ứng dụng này là phiên bản mobile hoàn chỉnh, phù hợp làm nền tảng demo hoặc dự án thực tế cho app theo dõi giá vàng.

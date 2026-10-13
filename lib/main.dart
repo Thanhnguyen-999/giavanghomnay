@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'services/gold_api.dart';
 
 void main() {
   runApp(const GoldPriceApp());
@@ -39,16 +41,48 @@ class GoldHomePage extends StatefulWidget {
 
 class _GoldHomePageState extends State<GoldHomePage> {
   final List<GoldItem> _items = [
-    GoldItem(id: 1, name: 'SJC', buy: 79200, sell: 79900, trend: 0.35, unit: 'lượng'),
-    GoldItem(id: 2, name: '24K', buy: 78100, sell: 79000, trend: 0.2, unit: 'lượng'),
-    GoldItem(id: 3, name: '14K', buy: 67200, sell: 68150, trend: 0.42, unit: 'lượng'),
-    GoldItem(id: 4, name: 'Nhẫn tròn', buy: 74500, sell: 75200, trend: 0.18, unit: 'chỉ'),
-    GoldItem(id: 5, name: 'Vàng miếng', buy: 81500, sell: 82300, trend: 0.4, unit: 'miếng'),
-    GoldItem(id: 6, name: 'Vàng nữ trang', buy: 77500, sell: 78350, trend: 0.28, unit: 'lượng'),
+    GoldItem(id: 1, name: 'SJC', buy: 79200.0, sell: 79900.0, trend: 0.35, unit: 'lượng'),
+    GoldItem(id: 2, name: '24K', buy: 78100.0, sell: 79000.0, trend: 0.2, unit: 'lượng'),
+    GoldItem(id: 3, name: '14K', buy: 67200.0, sell: 68150.0, trend: 0.42, unit: 'lượng'),
+    GoldItem(id: 4, name: 'Nhẫn tròn', buy: 74500.0, sell: 75200.0, trend: 0.18, unit: 'chỉ'),
+    GoldItem(id: 5, name: 'Vàng miếng', buy: 81500.0, sell: 82300.0, trend: 0.4, unit: 'miếng'),
+    GoldItem(id: 6, name: 'Vàng nữ trang', buy: 77500.0, sell: 78350.0, trend: 0.28, unit: 'lượng'),
   ];
 
   final Set<int> _favoriteIds = {1, 5};
   int _selectedIndex = 0;
+  bool _loading = false;
+  String? _error;
+  final Map<String, double> _livePrices = {}; // metal code -> VND per lượng
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLivePrices();
+  }
+
+  Future<void> _loadLivePrices() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final data = await GoldApi.fetchVndPerLuong();
+      setState(() {
+        _livePrices.clear();
+        _livePrices.addAll(data);
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   void _toggleFavorite(int id) {
     setState(() {
@@ -62,6 +96,11 @@ class _GoldHomePageState extends State<GoldHomePage> {
 
   List<GoldItem> get _favoriteItems =>
       _items.where((item) => _favoriteIds.contains(item.id)).toList();
+
+  String _formatVnd(double v) {
+    final f = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+    return f.format(v);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,8 +116,8 @@ class _GoldHomePageState extends State<GoldHomePage> {
         title: const Text('Giá Vàng Hôm Nay'),
         actions: [
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_none_rounded),
+            onPressed: _loadLivePrices,
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -107,6 +146,8 @@ class _GoldHomePageState extends State<GoldHomePage> {
 
   Widget _buildOverviewTab() {
     final firstItem = _items.first;
+
+    final liveValue = _livePrices['GOLD'] ?? _livePrices['XAU'] ?? _livePrices['GOLD'] ?? null;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -151,7 +192,7 @@ class _GoldHomePageState extends State<GoldHomePage> {
                         color: Colors.white.withOpacity(0.35),
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      const Text(
+                      child: const Text(
                         'Live',
                         style: TextStyle(
                           color: Colors.black87,
@@ -162,14 +203,28 @@ class _GoldHomePageState extends State<GoldHomePage> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                Text(
-                  '${firstItem.buy.toString().replaceAllMapped(RegExp(r'(.)(?=(.*\d{3})+(?!\d))'), (match) => '${match[1]}.')} VND',
-                  style: const TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                if (_loading)
+                  const SizedBox(height: 60, child: Center(child: CircularProgressIndicator()))
+                else if (_error != null)
+                  Text('Lỗi khi tải dữ liệu: $_error', style: const TextStyle(color: Colors.red))
+                else if (liveValue != null)
+                  Text(
+                    _formatVnd(liveValue),
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  )
+                else
+                  Text(
+                    '${firstItem.buy.toStringAsFixed(0)} ₫',
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 8),
                 Text(
                   'Cập nhật lúc ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
@@ -192,7 +247,7 @@ class _GoldHomePageState extends State<GoldHomePage> {
               Expanded(
                 child: _MarketStatCard(
                   title: 'Mua vào',
-                  value: '79.200',
+                  value: _formatVnd(_items.first.buy),
                   color: Colors.green,
                 ),
               ),
@@ -200,7 +255,7 @@ class _GoldHomePageState extends State<GoldHomePage> {
               Expanded(
                 child: _MarketStatCard(
                   title: 'Bán ra',
-                  value: '79.900',
+                  value: _formatVnd(_items.first.sell),
                   color: Colors.orange,
                 ),
               ),
@@ -239,6 +294,8 @@ class _GoldHomePageState extends State<GoldHomePage> {
               final item = _items[index];
               final isFavorite = _favoriteIds.contains(item.id);
 
+              final live = _livePrices['XAU'] ?? _livePrices['GOLD'];
+
               return Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -263,7 +320,7 @@ class _GoldHomePageState extends State<GoldHomePage> {
                         children: [
                           Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                           Text(
-                            'Mua ${item.buy} • Bán ${item.sell}',
+                            'Mua ${(_livePrices['XAU'] != null ? _formatVnd(_livePrices['XAU']!) : item.buy.toStringAsFixed(0))} • Bán ${(_livePrices['XAU'] != null ? _formatVnd(_livePrices['XAU']!) : item.sell.toStringAsFixed(0))}',
                             style: const TextStyle(fontSize: 12, color: Colors.black54),
                           ),
                         ],
@@ -294,6 +351,10 @@ class _GoldHomePageState extends State<GoldHomePage> {
       itemBuilder: (context, index) {
         final item = _items[index];
         final isFavorite = _favoriteIds.contains(item.id);
+        final live = _livePrices['XAU'] ?? _livePrices['GOLD'];
+
+        final buyText = live != null ? _formatVnd(live) : _formatVnd(item.buy);
+        final sellText = live != null ? _formatVnd(live) : _formatVnd(item.sell);
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -330,7 +391,7 @@ class _GoldHomePageState extends State<GoldHomePage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Mua ${item.buy.toString()} • Bán ${item.sell.toString()}',
+                      'Mua $buyText • Bán $sellText',
                       style: const TextStyle(fontSize: 12, color: Colors.black54),
                     ),
                   ],
@@ -409,7 +470,7 @@ class _GoldHomePageState extends State<GoldHomePage> {
                     Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Text(
-                      'Mua ${item.buy} • Bán ${item.sell}',
+                      'Mua ${_formatVnd(item.buy)} • Bán ${_formatVnd(item.sell)}',
                       style: const TextStyle(fontSize: 12, color: Colors.black54),
                     ),
                   ],
@@ -538,8 +599,8 @@ class _TrendCard extends StatelessWidget {
 class GoldItem {
   final int id;
   final String name;
-  final int buy;
-  final int sell;
+  final double buy;
+  final double sell;
   final double trend;
   final String unit;
 
