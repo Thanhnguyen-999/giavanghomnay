@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:giavanghomnay/main.dart';
 
 void main() {
-  runApp(const GoldPriceApp());
-}
+  testWidgets('App loads and shows main title', (WidgetTester tester) async {
+    await tester.pumpWidget(const GoldPriceApp());
 
-void main() {
-  // This file can be used for a widget test.
+    expect(find.text('Giá Vàng Hôm Nay'), findsOneWidget);
+    expect(find.text('Tổng quan'), findsOneWidget);
+  });
 }
