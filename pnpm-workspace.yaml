@@ -1,0 +1,6 @@
+# Các package TypeScript. apps/mobile (Flutter) không thuộc pnpm.
+packages:
+  - apps/web
+  - apps/admin
+  - services/*
+  - packages/*

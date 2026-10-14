@@ -1,0 +1,15 @@
+{
+  "name": "giavanghomnay",
+  "private": true,
+  "description": "Monorepo Giá Vàng Hôm Nay: mobile (Flutter), web (Astro), admin (React), API (Cloudflare Workers)",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "mobile:get": "cd apps/mobile && flutter pub get",
+    "mobile:analyze": "cd apps/mobile && flutter analyze",
+    "mobile:test": "cd apps/mobile && flutter test",
+    "mobile:run": "cd apps/mobile && flutter run"
+  }
+}

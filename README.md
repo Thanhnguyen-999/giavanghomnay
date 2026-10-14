@@ -1,103 +1,44 @@
-import 'dart:convert';
+# Giá Vàng Hôm Nay
 
-import 'package:http/http.dart' as http;
+Hệ thống theo dõi giá vàng Việt Nam: app mobile, website, trang quản trị và API trên Cloudflare.
+Kiến trúc chi tiết: [`ai_docs/architecture.md`](ai_docs/architecture.md).
 
-class GoldPrice {
-  final String metal;
-  final double priceUsdPerOunce;
+## Cấu trúc
 
-  GoldPrice({required this.metal, required this.priceUsdPerOunce});
-}
+| Thư mục | Nội dung | Trạng thái |
+|---|---|---|
+| `apps/mobile` | Flutter (Android/iOS) | Phase 0 xong: khung 4 tab, tab Thế giới chạy được |
+| `apps/web` | Astro (tĩnh) → GitHub Pages `https://thanhnguyen-999.github.io/` | Phase 3 |
+| `apps/admin` | React + Vite → Cloudflare Workers + Access | Phase 2 |
+| `services/api` | Worker `gold-api` (API, crawler, cảnh báo) | Phase 1 |
+| `packages/shared`, `packages/extractor` | Schema dùng chung, engine trích xuất giá | Phase 1 |
 
-class GoldApi {
-  // Best-supported source for real VND gold price is a registered provider with an API key.
-  // Exact Vietnam SJC gold price is not publicly available via a free official API.
-  // This integration tries GoldAPI first (if a key is supplied), then falls back to public market data.
-  static const _goldApiUrl = 'https://www.goldapi.io/api/XAU/VND';
-  static const _metalsUrl = 'https://api.metals.live/v1/spot';
-  static const _fxUrl = 'https://api.exchangerate.host/latest?base=USD&symbols=VND';
+## Yêu cầu
 
-  static String get apiKey => const String.fromEnvironment(
-        'GOLD_API_KEY',
-        defaultValue: '',
-      );
+- Flutter 3.38+ (stable)
+- Node 22 LTS (`.nvmrc`) và pnpm (bật bằng `corepack enable`) cho phần TypeScript
+- Android Studio/emulator để chạy Android; Xcode (macOS) để chạy iOS
 
-  static Future<double> _fetchUsdToVnd() async {
-    final r = await http.get(Uri.parse(_fxUrl));
-    if (r.statusCode != 200) throw Exception('FX request failed: ${r.statusCode}');
-    final j = json.decode(r.body);
-    if (j is Map && j['rates'] != null && j['rates']['VND'] != null) {
-      return (j['rates']['VND'] as num).toDouble();
-    }
-    throw Exception('Unexpected FX response');
-  }
+## Chạy app mobile
 
-  static Future<List<GoldPrice>> fetchSpotPrices() async {
-    final r = await http.get(Uri.parse(_metalsUrl));
-    if (r.statusCode != 200) throw Exception('Metals request failed: ${r.statusCode}');
+```bash
+cd apps/mobile
+flutter pub get
+flutter run
+```
 
-    final j = json.decode(r.body);
-    final List<GoldPrice> prices = [];
+Hoặc từ thư mục gốc: `npm run mobile:run`. Kiểm tra: `npm run mobile:analyze`, `npm run mobile:test`.
 
-    if (j is List) {
-      for (final entry in j) {
-        if (entry is Map) {
-          String? metal;
-          double? price;
+Tùy chọn khi build:
 
-          if (entry.containsKey('metal')) metal = (entry['metal'] ?? '').toString();
-          if (entry.containsKey('symbol')) metal = (entry['symbol'] ?? metal)?.toString();
+```bash
+flutter run --dart-define=GOLD_API_KEY=<key goldapi.io>             # giá XAU theo VND từ GoldAPI
+flutter run --dart-define=API_BASE_URL=https://gold-api.<account>.workers.dev   # khi backend sẵn sàng
+```
 
-          if (entry.containsKey('price')) price = (entry['price'] as num?)?.toDouble();
-          if (entry.containsKey('value')) price = (entry['value'] as num?)?.toDouble();
-          if (entry.containsKey('ask')) price = (entry['ask'] as num?)?.toDouble();
+## Dữ liệu hiện tại
 
-          if (metal != null && price != null) {
-            prices.add(GoldPrice(metal: metal.toUpperCase(), priceUsdPerOunce: price));
-          }
-        }
-      }
-    }
+Tab **Thế giới** lấy giá XAU/XAG từ [gold-api.com](https://gold-api.com) và tỷ giá từ [open.er-api.com](https://open.er-api.com), quy đổi ra VND/lượng (37,5 g).
+Đây là **giá thế giới quy đổi, không phải giá vàng trong nước** (SJC, DOJI, PNJ...). Giá trong nước sẽ có khi backend thu thập giá hoạt động (Phase 1).
 
-    if (prices.isEmpty) throw Exception('No prices parsed from metals API');
-    return prices;
-  }
-
-  static Future<Map<String, double>> fetchVndPerLuong() async {
-    final key = apiKey;
-    if (key.isNotEmpty) {
-      try {
-        final r = await http.get(
-          Uri.parse(_goldApiUrl),
-          headers: {'x-access-token': key},
-        );
-
-        if (r.statusCode == 200) {
-          final j = json.decode(r.body);
-          if (j is Map && j['price'] != null) {
-            final priceInVndPerOunce = (j['price'] as num).toDouble();
-            const gramsPerOunce = 31.1034768;
-            const gramsPerLuong = 37.5;
-            final factor = gramsPerLuong / gramsPerOunce;
-            return {'GOLD': priceInVndPerOunce * factor};
-          }
-        }
-      } catch (_) {
-        // Fall through to public market API below.
-      }
-    }
-
-    final usdToVnd = await _fetchUsdToVnd();
-    final spot = await fetchSpotPrices();
-    const gramsPerOunce = 31.1034768;
-    const gramsPerLuong = 37.5;
-    final factor = gramsPerLuong / gramsPerOunce;
-
-    final Map<String, double> result = {};
-    for (final p in spot) {
-      result[p.metal] = p.priceUsdPerOunce * factor * usdToVnd;
-    }
-
-    return result;
-  }
-}
+Mọi giá trong app chỉ mang tính tham khảo.
