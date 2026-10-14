@@ -1,0 +1,50 @@
+name: backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    paths:
+      - 'services/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/backend.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.11.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Extractor - typecheck & test
+        working-directory: packages/extractor
+        run: |
+          pnpm run typecheck
+          pnpm run test
+
+      - name: API - typecheck & test
+        working-directory: services/api
+        run: |
+          pnpm run typecheck
+          pnpm run test

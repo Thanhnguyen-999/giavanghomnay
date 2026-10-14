@@ -9,14 +9,21 @@
     "typecheck": "wrangler types && tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply gold-db --local",
     "db:seed:local": "wrangler d1 execute gold-db --local --file=./seed/dev.sql",
+    "db:sources:local": "wrangler d1 execute gold-db --local --file=./seed/sources.sql",
+    "db:sources:remote": "wrangler d1 execute gold-db --remote --file=./seed/sources.sql",
     "db:migrate:remote": "wrangler d1 migrations apply gold-db --remote",
-    "db:list:remote": "wrangler d1 migrations list gold-db --remote"
+    "db:list:remote": "wrangler d1 migrations list gold-db --remote",
+    "test": "vitest run"
   },
   "dependencies": {
-    "hono": "4.13.13"
+    "@giavang/extractor": "workspace:*",
+    "hono": "4.13.13",
+    "zod": "4.6.7"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.8.71",
     "typescript": "7.0.2",
+    "vitest": "2.1.9",
     "wrangler": "4.150.0"
   }
 }

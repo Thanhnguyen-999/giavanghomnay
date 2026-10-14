@@ -15,8 +15,31 @@ database_name = "gold-db"
 database_id = "3f0e7ed1-6268-4cd7-badc-f54a9619bc66"
 migrations_dir = "migrations"
 
+# Snapshot giá mới nhất + cache nhỏ. Local (--local) dùng KV local, không đụng id này.
+# Tạo KV thật: npx wrangler kv namespace create CACHE  → dán id vào đây.
+[[kv_namespaces]]
+binding = "CACHE"
+id = "0000000000000000000000000000cafe"
+
+# Mỗi message = 1 nguồn đến hạn crawl.
+# Tạo queue thật: npx wrangler queues create crawl-jobs ; npx wrangler queues create crawl-jobs-dlq
+[[queues.producers]]
+binding = "CRAWL_QUEUE"
+queue = "crawl-jobs"
+
+[[queues.consumers]]
+queue = "crawl-jobs"
+max_batch_size = 5
+max_batch_timeout = 10
+max_retries = 2
+dead_letter_queue = "crawl-jobs-dlq"
+
+# Scheduler chạy mỗi phút, chọn nguồn tới hạn theo interval_sec của từng nguồn.
+[triggers]
+crons = ["* * * * *"]
+
 [observability]
 enabled = true
 
-# KV, Queues, R2, cron sẽ thêm ở Phase 1 (xem ai_docs/architecture.md mục 4).
+# R2, alerts queue thêm ở Phase sau (xem ai_docs/architecture.md mục 4).
 # Secret không ghi vào file này: dùng `npx wrangler secret put <NAME>`; local dùng .dev.vars.

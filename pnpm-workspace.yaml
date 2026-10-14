@@ -11,6 +11,8 @@ packages:
 allowBuilds:
   esbuild: true
   workerd: true
+  # sharp bị kéo vào gián tiếp (image), test không cần → không chạy script.
+  sharp: false
 
 # pnpm tự thêm: các bản được pin mới phát hành, chưa qua thời gian chờ minimumReleaseAge.
 minimumReleaseAgeExclude:

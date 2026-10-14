@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metals>
+  <metal symbol="XAU" currency="USD">
+    <price>4152.00</price>
+  </metal>
+  <metal symbol="XAG" currency="USD">
+    <price>52.35</price>
+  </metal>
+</metals>
