@@ -10,7 +10,7 @@ Kiến trúc chi tiết: [`ai_docs/architecture.md`](ai_docs/architecture.md).
 | `apps/mobile` | Flutter (Android/iOS) | Phase 0 xong: khung 4 tab, tab Thế giới chạy được |
 | `apps/web` | Astro (tĩnh) → GitHub Pages `https://thanhnguyen-999.github.io/` | Phase 3 |
 | `apps/admin` | React + Vite → Cloudflare Workers + Access | Phase 2 |
-| `services/api` | Worker `gold-api` (API, crawler, cảnh báo) | Phase 1 |
+| `services/api` | Worker `gold-api` (API, crawler, cảnh báo) | D1 + API đọc đã chạy local; crawler/cảnh báo ở Phase 1 |
 | `packages/shared`, `packages/extractor` | Schema dùng chung, engine trích xuất giá | Phase 1 |
 
 ## Yêu cầu

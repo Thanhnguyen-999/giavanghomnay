@@ -1,0 +1,22 @@
+{
+  "name": "@giavang/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types",
+    "typecheck": "wrangler types && tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply gold-db --local",
+    "db:seed:local": "wrangler d1 execute gold-db --local --file=./seed/dev.sql",
+    "db:migrate:remote": "wrangler d1 migrations apply gold-db --remote",
+    "db:list:remote": "wrangler d1 migrations list gold-db --remote"
+  },
+  "dependencies": {
+    "hono": "4.13.13"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "wrangler": "4.150.0"
+  }
+}

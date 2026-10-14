@@ -4,3 +4,15 @@ packages:
   - apps/admin
   - services/*
   - packages/*
+
+# pnpm chặn script cài đặt của dependency theo mặc định. Chỉ cho phép package cần thiết:
+#   esbuild – tải binary bundler (wrangler dùng để build Worker)
+#   workerd – runtime Workers chạy local (wrangler dev, D1 --local)
+allowBuilds:
+  esbuild: true
+  workerd: true
+
+# pnpm tự thêm: các bản được pin mới phát hành, chưa qua thời gian chờ minimumReleaseAge.
+minimumReleaseAgeExclude:
+  - miniflare@5.20261006.2-beta
+  - wrangler@4.150.0

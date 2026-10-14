@@ -1,0 +1,22 @@
+name = "gold-api"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Origin được phép gọi API từ trình duyệt (web công khai). Ngăn cách bằng dấu phẩy.
+CORS_ORIGINS = "https://thanhnguyen-999.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gold-db"
+# gold-db (region APAC), tạo bằng: npx wrangler d1 create gold-db
+# Local dev (--local) dùng DB SQLite riêng, không đụng id này.
+database_id = "3f0e7ed1-6268-4cd7-badc-f54a9619bc66"
+migrations_dir = "migrations"
+
+[observability]
+enabled = true
+
+# KV, Queues, R2, cron sẽ thêm ở Phase 1 (xem ai_docs/architecture.md mục 4).
+# Secret không ghi vào file này: dùng `npx wrangler secret put <NAME>`; local dùng .dev.vars.
