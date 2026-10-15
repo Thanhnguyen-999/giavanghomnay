@@ -1,9 +1,16 @@
 import type { Context } from 'hono';
+import type { AdminRole } from './auth/access.ts';
 
 /// Binding của Worker (sinh trong worker-configuration.d.ts qua `wrangler types`).
 export type Bindings = Env;
 
-export type AppEnv = { Bindings: Bindings };
+/// Biến gắn vào context sau khi qua middleware auth.
+export interface AppVariables {
+  adminEmail: string;
+  adminRole: AdminRole;
+}
+
+export type AppEnv = { Bindings: Bindings; Variables: AppVariables };
 
 export type AppContext = Context<AppEnv>;
 

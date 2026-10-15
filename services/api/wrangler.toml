@@ -4,8 +4,16 @@ compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-# Origin được phép gọi API từ trình duyệt (web công khai). Ngăn cách bằng dấu phẩy.
+# Origin được phép gọi API từ trình duyệt (web công khai + admin). Ngăn cách bằng dấu phẩy.
 CORS_ORIGINS = "https://thanhnguyen-999.github.io"
+# Môi trường. "dev" cho phép ADMIN_DEV_EMAIL bỏ qua Access; "production" thì KHÔNG.
+ENVIRONMENT = "production"
+# Cloudflare Access (điền sau khi tạo Access application; không bí mật).
+#   ACCESS_TEAM_DOMAIN = "https://<team>.cloudflareaccess.com"
+#   ACCESS_AUD         = "<Application Audience tag>"
+ACCESS_TEAM_DOMAIN = ""
+ACCESS_AUD = ""
+# ADMIN_DEV_EMAIL chỉ đặt ở .dev.vars cho local; production để trống.
 
 [[d1_databases]]
 binding = "DB"

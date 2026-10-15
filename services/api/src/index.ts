@@ -4,13 +4,14 @@ import { runCrawlJob } from './crawl/runner.ts';
 import { scheduleDueSources } from './crawl/scheduler.ts';
 import { errorResponse } from './lib/errors.ts';
 import { nowSec } from './lib/time.ts';
+import { adminRoutes } from './routes/admin/index.ts';
 import { health } from './routes/health.ts';
 import { publicRoutes } from './routes/public.ts';
 import type { AppEnv, CrawlJob } from './types.ts';
 
 const app = new Hono<AppEnv>();
 
-// CORS chỉ cho các origin cấu hình (web công khai). Mobile không gửi Origin nên không ảnh hưởng.
+// CORS cho web công khai (GET). Mobile không gửi Origin nên không ảnh hưởng.
 app.use('/v1/*', async (c, next) => {
   const allowed = c.env.CORS_ORIGINS.split(',').map((o) => o.trim());
   return cors({
@@ -19,8 +20,20 @@ app.use('/v1/*', async (c, next) => {
   })(c, next);
 });
 
+// CORS cho admin SPA: cho phép mọi method ghi + header Access, kèm credentials (cookie Access).
+app.use('/admin/v1/*', async (c, next) => {
+  const allowed = c.env.CORS_ORIGINS.split(',').map((o) => o.trim());
+  return cors({
+    origin: (origin) => (allowed.includes(origin) ? origin : null),
+    allowMethods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    allowHeaders: ['Content-Type', 'Cf-Access-Jwt-Assertion'],
+    credentials: true,
+  })(c, next);
+});
+
 app.route('/', health);
 app.route('/v1', publicRoutes);
+app.route('/admin/v1', adminRoutes);
 
 app.notFound((c) => c.json({ error: { code: 'not_found', message: 'Not found' } }, 404));
 app.onError((err, c) => errorResponse(c, err));

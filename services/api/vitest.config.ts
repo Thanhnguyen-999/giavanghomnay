@@ -12,13 +12,22 @@ export default defineWorkersConfig(async () => {
       include: ['test/**/*.test.ts'],
       poolOptions: {
         workers: {
+          // isolatedStorage: mỗi test có storage riêng (rollback sau mỗi test).
+          // Cần bật để tránh ERR_MULTIPLE_CONSUMERS khi nhiều file test chung queue.
+          // Hệ quả: mỗi test() phải tự tạo dữ liệu nó cần, không dựa vào test trước.
           isolatedStorage: true,
           wrangler: { configPath: './wrangler.toml' },
           miniflare: {
             compatibilityDate: '2026-10-01',
             compatibilityFlags: ['nodejs_compat'],
-            // Truyền danh sách migration vào test qua binding để applyD1Migrations dùng.
-            bindings: { TEST_MIGRATIONS: migrations },
+            // Truyền migrations + bật dev-mode để test auth bằng header X-Dev-Email.
+            bindings: {
+              TEST_MIGRATIONS: migrations,
+              ENVIRONMENT: 'dev',
+              ADMIN_DEV_EMAIL: '',
+              ACCESS_TEAM_DOMAIN: '',
+              ACCESS_AUD: '',
+            },
           },
         },
       },
