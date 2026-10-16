@@ -16,8 +16,10 @@ final _snapshot = WorldSnapshot(
   ],
 );
 
+// Test chạy không có API_BASE_URL → hasBackend=false:
+//  - tab Thế giới dùng nguồn trực tiếp (ta override worldSnapshotProvider).
+//  - tab Trong nước hiện màn "Chưa kết nối máy chủ" (không gọi cache/mạng).
 Widget _app(Future<WorldSnapshot> Function() load) => ProviderScope(
-  // Tắt retry tự động của Riverpod để test không còn timer treo.
   retry: (retryCount, error) => null,
   overrides: [worldSnapshotProvider.overrideWith((ref) => load())],
   child: const GoldPriceApp(),
@@ -50,7 +52,8 @@ void main() {
 
     await tester.tap(find.text('Trong nước'));
     await tester.pumpAndSettle();
-    expect(find.text('Giá vàng trong nước sắp có'), findsOneWidget);
+    // Không có backend trong test → màn "Chưa kết nối máy chủ".
+    expect(find.text('Chưa kết nối máy chủ'), findsOneWidget);
 
     await tester.tap(find.text('Xem giá thế giới'));
     await tester.pumpAndSettle();
