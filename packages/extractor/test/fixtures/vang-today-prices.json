@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "timestamp": 1792485003,
+  "count": 3,
+  "prices": {
+    "XAUUSD": {
+      "name": "World Gold (XAU/USD)",
+      "buy": 4122.9,
+      "sell": 0,
+      "currency": "USD"
+    },
+    "SJL1L10": {
+      "name": "SJC 9999",
+      "buy": 139600000,
+      "sell": 142600000,
+      "currency": "VND"
+    },
+    "SJ9999": {
+      "name": "SJC Ring",
+      "buy": 137700000,
+      "sell": 141200000,
+      "currency": "VND"
+    }
+  }
+}

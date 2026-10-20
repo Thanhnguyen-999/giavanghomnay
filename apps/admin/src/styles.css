@@ -86,3 +86,26 @@ textarea { font-family: ui-monospace, monospace; min-height: 160px; }
 .error { color: var(--down); font-size: 13px; }
 .muted { color: var(--muted); font-size: 13px; }
 .warnings { background: #fff8e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+
+/* Tổng quan: lưới thẻ chỉ số */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat-link { text-decoration: none; color: inherit; }
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.stat-card.ok { border-left-color: var(--up); }
+.stat-card.warn { border-left-color: #f59e0b; }
+.stat-card.err { border-left-color: var(--down); }
+.stat-link:hover .stat-card { background: var(--bg); }
+.stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+.stat-label { margin-top: 6px; font-size: 14px; }
+.stat-hint { margin-top: 2px; font-size: 12px; color: var(--muted); }

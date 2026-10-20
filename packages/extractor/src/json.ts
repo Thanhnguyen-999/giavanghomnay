@@ -3,12 +3,18 @@
 /// Cú pháp hỗ trợ:
 ///   a.b.c        truy cập thuộc tính
 ///   items[0]     chỉ số mảng
-///   items[*]     mọi phần tử của mảng (dùng cho `rows`)
+///   items[*]     mọi phần tử của MẢNG hoặc mọi value của OBJECT (dùng cho `rows`)
+///
+/// Khi wildcard duyệt một object, mỗi value được gắn thêm khóa `$key` = tên thuộc tính,
+/// nên cấu hình có thể lấy mã loại bằng field path "$key" (vd API trả object theo type_code).
 ///
 /// `selectList` trả danh sách node (mỗi node là một "dòng").
 /// `selectValue` trả một giá trị vô hướng từ một node.
 
 type Json = unknown;
+
+/// Khóa đặc biệt chứa tên thuộc tính khi wildcard duyệt object.
+export const KEY_FIELD = '$key';
 
 interface Token {
   key?: string;
@@ -39,7 +45,18 @@ function step(nodes: Json[], token: Token): Json[] {
   for (const node of nodes) {
     if (node == null) continue;
     if (token.wildcard) {
-      if (Array.isArray(node)) out.push(...node);
+      if (Array.isArray(node)) {
+        out.push(...node);
+      } else if (typeof node === 'object') {
+        // Duyệt value của object; gắn $key = tên thuộc tính để lấy làm nhãn.
+        for (const [k, v] of Object.entries(node as Record<string, Json>)) {
+          if (v != null && typeof v === 'object' && !Array.isArray(v)) {
+            out.push({ [KEY_FIELD]: k, ...(v as Record<string, Json>) });
+          } else {
+            out.push(v);
+          }
+        }
+      }
     } else if (token.index !== undefined) {
       if (Array.isArray(node)) {
         const v = node[token.index];

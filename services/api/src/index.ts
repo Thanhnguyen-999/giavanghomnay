@@ -26,7 +26,7 @@ app.use('/admin/v1/*', async (c, next) => {
   return cors({
     origin: (origin) => (allowed.includes(origin) ? origin : null),
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE'],
-    allowHeaders: ['Content-Type', 'Cf-Access-Jwt-Assertion'],
+    allowHeaders: ['Content-Type', 'Cf-Access-Jwt-Assertion', 'X-Admin-Token'],
     credentials: true,
   })(c, next);
 });

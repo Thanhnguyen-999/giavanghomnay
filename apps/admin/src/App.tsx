@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ApiError, api } from './api/client.ts';
+import { ApiError, api, getAdminToken, setAdminToken } from './api/client.ts';
 import type { Me } from './api/types.ts';
 import { AdminsPage } from './pages/AdminsPage.tsx';
 import { AuditPage } from './pages/AuditPage.tsx';
 import { BrandsPage } from './pages/BrandsPage.tsx';
 import { CrawlRunsPage } from './pages/CrawlRunsPage.tsx';
 import { MappingsPage } from './pages/MappingsPage.tsx';
+import { OverviewPage } from './pages/OverviewPage.tsx';
 import { ProductsPage } from './pages/ProductsPage.tsx';
 import { ReviewsPage } from './pages/ReviewsPage.tsx';
 import { SourcesPage } from './pages/SourcesPage.tsx';
@@ -17,6 +18,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
+  { path: 'overview', label: 'Tổng quan', minRole: 'viewer' },
   { path: 'brands', label: 'Thương hiệu', minRole: 'viewer' },
   { path: 'products', label: 'Sản phẩm', minRole: 'viewer' },
   { path: 'sources', label: 'Nguồn dữ liệu', minRole: 'viewer' },
@@ -30,9 +32,9 @@ const NAV: NavItem[] = [
 const RANK = { viewer: 1, editor: 2, owner: 3 } as const;
 
 function useHashRoute(): string {
-  const [hash, setHash] = useState(() => window.location.hash.slice(1) || 'brands');
+  const [hash, setHash] = useState(() => window.location.hash.slice(1) || 'overview');
   useEffect(() => {
-    const onChange = () => setHash(window.location.hash.slice(1) || 'brands');
+    const onChange = () => setHash(window.location.hash.slice(1) || 'overview');
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
@@ -43,22 +45,34 @@ export function App() {
   const route = useHashRoute();
   const [me, setMe] = useState<Me | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [needLogin, setNeedLogin] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
+    setError(null);
+    setNeedLogin(false);
     api
       .get<Me>('/admin/v1/me')
-      .then(setMe)
+      .then((m) => {
+        if (!cancelled) setMe(m);
+      })
       .catch((e: unknown) => {
-        if (e instanceof ApiError) {
-          setError(
-            e.status === 403 || e.status === 401
-              ? 'Bạn chưa có quyền quản trị. Liên hệ owner để được cấp quyền.'
-              : e.message,
-          );
-        } else setError(String(e));
+        if (cancelled) return;
+        if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+          setNeedLogin(true); // cần nhập token
+        } else {
+          setError(e instanceof Error ? e.message : String(e));
+        }
       });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
 
+  if (needLogin) {
+    return <TokenGate onSubmit={() => setAttempt((a) => a + 1)} />;
+  }
   if (error) {
     return (
       <div className="main">
@@ -87,6 +101,17 @@ export function App() {
           {me.email}
           <br />
           vai trò: {me.role}
+          <br />
+          <button
+            style={{ marginTop: 8, fontSize: 12, padding: '4px 8px' }}
+            onClick={() => {
+              setAdminToken('');
+              setMe(null);
+              setAttempt((a) => a + 1);
+            }}
+          >
+            Đăng xuất
+          </button>
         </div>
       </aside>
       <main className="main">
@@ -96,9 +121,42 @@ export function App() {
   );
 }
 
+function TokenGate({ onSubmit }: { onSubmit: () => void }) {
+  const [value, setValue] = useState(getAdminToken());
+  return (
+    <div className="main" style={{ maxWidth: 420 }}>
+      <h2>Đăng nhập quản trị</h2>
+      <p className="muted">Nhập token quản trị để truy cập dashboard.</p>
+      <div className="card">
+        <label>Token</label>
+        <input
+          type="password"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="X-Admin-Token"
+        />
+        <p style={{ marginTop: 12 }}>
+          <button
+            className="primary"
+            onClick={() => {
+              setAdminToken(value.trim());
+              onSubmit();
+            }}
+            disabled={!value.trim()}
+          >
+            Vào dashboard
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function Page({ route, role }: { route: string; role: Me['role'] }) {
   const canEdit = RANK[role] >= RANK.editor;
   switch (route) {
+    case 'overview':
+      return <OverviewPage />;
     case 'brands':
       return <BrandsPage canEdit={canEdit} />;
     case 'products':
@@ -116,6 +174,6 @@ function Page({ route, role }: { route: string; role: Me['role'] }) {
     case 'audit':
       return <AuditPage />;
     default:
-      return <BrandsPage canEdit={canEdit} />;
+      return <OverviewPage />;
   }
 }

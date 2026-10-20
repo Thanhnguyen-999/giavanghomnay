@@ -14,6 +14,9 @@ ENVIRONMENT = "production"
 ACCESS_TEAM_DOMAIN = ""
 ACCESS_AUD = ""
 # ADMIN_DEV_EMAIL chỉ đặt ở .dev.vars cho local; production để trống.
+# Xác thực tạm bằng token (dùng khi chưa gắn được Access). Email gắn với token:
+ADMIN_TOKEN_EMAIL = "thanhadhp2000@gmail.com"
+# Secret ADMIN_TOKEN đặt bằng: npx wrangler secret put ADMIN_TOKEN
 
 [[d1_databases]]
 binding = "DB"
@@ -24,10 +27,9 @@ database_id = "3f0e7ed1-6268-4cd7-badc-f54a9619bc66"
 migrations_dir = "migrations"
 
 # Snapshot giá mới nhất + cache nhỏ. Local (--local) dùng KV local, không đụng id này.
-# Tạo KV thật: npx wrangler kv namespace create CACHE  → dán id vào đây.
 [[kv_namespaces]]
 binding = "CACHE"
-id = "0000000000000000000000000000cafe"
+id = "ae07733755164ba3aa207867a2571079"
 
 # Mỗi message = 1 nguồn đến hạn crawl.
 # Tạo queue thật: npx wrangler queues create crawl-jobs ; npx wrangler queues create crawl-jobs-dlq
@@ -48,6 +50,13 @@ crons = ["* * * * *"]
 
 [observability]
 enabled = true
+
+# Admin SPA tĩnh (build từ apps/admin vào public/admin). API route chạy trước,
+# path không khớp route → phục vụ file tĩnh; thiếu file → index.html của SPA.
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+run_worker_first = ["/v1/*", "/admin/v1/*", "/health", "/cdn-cgi/*"]
 
 # R2, alerts queue thêm ở Phase sau (xem ai_docs/architecture.md mục 4).
 # Secret không ghi vào file này: dùng `npx wrangler secret put <NAME>`; local dùng .dev.vars.

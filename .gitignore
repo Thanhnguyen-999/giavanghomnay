@@ -36,6 +36,8 @@ GoogleService-Info.plist
 service-account*.json
 # Seed admin thật (chứa email); chỉ commit bản .example.
 services/api/seed/admins.sql
+# Admin SPA build output (sinh từ apps/admin, không commit).
+services/api/public/admin/
 
 # Flutter: quy tắc riêng nằm ở apps/mobile/.gitignore
 # Lưu ý: pubspec.lock và pnpm-lock.yaml PHẢI được commit.
