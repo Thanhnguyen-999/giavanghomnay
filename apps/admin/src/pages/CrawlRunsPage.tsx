@@ -1,8 +1,16 @@
 import { useMemo, useState } from 'react';
 import type { CrawlRun } from '../api/types.ts';
 import { type Column, DataTable } from '../components/DataTable.tsx';
-import { IconRefresh } from '../components/icons.tsx';
-import { HoverTip, SearchInput, Segmented, StatusBadge, formatDateTime, timeAgo } from '../components/ui.tsx';
+import { IconFeed, IconRefresh } from '../components/icons.tsx';
+import {
+  EmptyState,
+  HoverTip,
+  SearchInput,
+  Segmented,
+  StatusBadge,
+  formatDateTime,
+  timeAgo,
+} from '../components/ui.tsx';
 import { useResource } from '../lib/useResource.ts';
 
 export function CrawlRunsPage() {
@@ -21,6 +29,7 @@ export function CrawlRunsPage() {
       key: 'started_at',
       header: 'Thời điểm',
       sortValue: (r) => r.started_at,
+      csv: (r) => formatDateTime(r.started_at),
       render: (r) => (
         <HoverTip
           label={timeAgo(r.started_at)}
@@ -31,10 +40,11 @@ export function CrawlRunsPage() {
         />
       ),
     },
-    { key: 'source_id', header: 'Nguồn', searchText: (r) => `${r.source_id} ${r.status}` },
+    { key: 'source_id', header: 'Nguồn', csv: (r) => r.source_id, searchText: (r) => `${r.source_id} ${r.status}` },
     {
       key: 'status',
       header: 'Kết quả',
+      csv: (r) => r.status,
       render: (r) =>
         r.error ? (
           <HoverTip label={<StatusBadge status={r.status} />} rows={[['Lỗi', r.error]]} />
@@ -42,13 +52,14 @@ export function CrawlRunsPage() {
           <StatusBadge status={r.status} />
         ),
     },
-    { key: 'rows_parsed', header: 'Dòng đọc', numeric: true },
-    { key: 'rows_changed', header: 'Dòng đổi', numeric: true },
+    { key: 'rows_parsed', header: 'Dòng đọc', numeric: true, csv: (r) => r.rows_parsed },
+    { key: 'rows_changed', header: 'Dòng đổi', numeric: true, csv: (r) => r.rows_changed },
     {
       key: 'duration_ms',
       header: 'Thời gian',
       numeric: true,
       sortValue: (r) => r.duration_ms ?? 0,
+      csv: (r) => r.duration_ms ?? '',
       render: (r) => (r.duration_ms != null ? `${r.duration_ms}ms` : '—'),
     },
   ];
@@ -89,8 +100,20 @@ export function CrawlRunsPage() {
           rows={rows}
           rowKey={(r) => String(r.id)}
           search={search}
+          loading={runs.loading && !runs.data}
+          exportName="nhat-ky-crawl"
           initialSort={{ key: 'started_at', dir: 'desc' }}
-          empty="Chưa có lần crawl nào."
+          empty={
+            <EmptyState
+              icon={<IconFeed size={28} />}
+              title={search || status !== 'all' ? 'Không có lần crawl khớp bộ lọc.' : 'Chưa có lần crawl nào.'}
+              hint={
+                search || status !== 'all'
+                  ? 'Thử đổi bộ lọc trạng thái hoặc từ khóa.'
+                  : 'Lịch sử thu thập giá sẽ xuất hiện sau lần crawl đầu tiên.'
+              }
+            />
+          }
         />
       </div>
     </>

@@ -1,5 +1,13 @@
 import type { ReactNode } from 'react';
-import { IconChevronLeft, IconChevronRight, IconDown, IconSearch, IconUp, IconX } from './icons.tsx';
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconDown,
+  IconDownload,
+  IconSearch,
+  IconUp,
+  IconX,
+} from './icons.tsx';
 
 const vnd = new Intl.NumberFormat('vi-VN');
 
@@ -208,5 +216,76 @@ export function Spinner() {
     <div className="center-pad">
       <div className="spinner" role="status" aria-label="Đang tải" />
     </div>
+  );
+}
+
+/// Khung xương (skeleton) cho bảng trong lúc tải dữ liệu.
+export function TableSkeleton({ rows = 6, cols = 5 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="skeleton-table" aria-hidden="true">
+      <div className="sk-row sk-head">
+        {Array.from({ length: cols }).map((_, i) => (
+          <span key={i} className="sk-cell" />
+        ))}
+      </div>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="sk-row">
+          {Array.from({ length: cols }).map((_, c) => (
+            <span key={c} className="sk-cell" style={{ width: `${55 + ((r * 7 + c * 13) % 40)}%` }} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/// Trạng thái rỗng kèm icon + mô tả + nút hành động tùy chọn.
+export function EmptyState({
+  icon,
+  title,
+  hint,
+  action,
+}: {
+  icon?: ReactNode;
+  title: string;
+  hint?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="empty-state">
+      {icon && <div className="empty-ico">{icon}</div>}
+      <div className="empty-title">{title}</div>
+      {hint && <div className="empty-hint">{hint}</div>}
+      {action && <div className="empty-action">{action}</div>}
+    </div>
+  );
+}
+
+/// Chuyển mảng đối tượng thành CSV (RFC 4180) và kích hoạt tải xuống.
+export function downloadCsv(filename: string, headers: string[], rows: (string | number | null | undefined)[][]) {
+  const esc = (v: string | number | null | undefined) => {
+    const s = v == null ? '' : String(v);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.map(esc).join(','), ...rows.map((r) => r.map(esc).join(','))];
+  // BOM để Excel đọc đúng UTF-8 (tiếng Việt).
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename.endsWith('.csv') ? filename : `${filename}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/// Nút xuất CSV dùng chung.
+export function ExportButton({ onExport, disabled }: { onExport: () => void; disabled?: boolean }) {
+  return (
+    <button className="btn sm ghost" onClick={onExport} disabled={disabled} title="Xuất CSV">
+      <IconDownload size={15} />
+      Xuất CSV
+    </button>
   );
 }

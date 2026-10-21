@@ -699,6 +699,9 @@ label {
   flex: 1;
   min-width: 160px;
 }
+.toolbar.end {
+  justify-content: flex-end;
+}
 .toolbar input,
 .toolbar select {
   height: 34px;
@@ -890,6 +893,76 @@ th.num {
   place-items: center;
   padding: var(--s-8);
 }
+
+/* ===================== Skeleton (khung xương khi tải) ===================== */
+
+.skeleton-table {
+  padding: var(--s-2) 0;
+}
+.skeleton-table .sk-row {
+  display: flex;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  align-items: center;
+}
+.skeleton-table .sk-row.sk-head .sk-cell {
+  opacity: 0.6;
+}
+.skeleton-table .sk-cell {
+  flex: 1;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--border) 25%,
+    var(--border-strong) 37%,
+    var(--border) 63%
+  );
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease infinite;
+}
+@keyframes sk-shimmer {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}
+
+/* ===================== Empty state (trạng thái rỗng + CTA) ===================== */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-8) var(--s-4);
+  text-align: center;
+  color: var(--muted);
+}
+.empty-state .empty-ico {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--card-hover);
+  color: var(--muted);
+  margin-bottom: var(--s-1);
+}
+.empty-state .empty-title {
+  color: var(--fg);
+  font-weight: 600;
+}
+.empty-state .empty-hint {
+  font-size: 13px;
+  max-width: 42ch;
+}
+.empty-state .empty-action {
+  margin-top: var(--s-3);
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

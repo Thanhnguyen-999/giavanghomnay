@@ -1,5 +1,5 @@
 import { type ReactNode, useMemo, useState } from 'react';
-import { Pagination } from './ui.tsx';
+import { ExportButton, Pagination, TableSkeleton, downloadCsv } from './ui.tsx';
 
 export interface Column<T> {
   key: string;
@@ -14,6 +14,8 @@ export interface Column<T> {
   sortable?: boolean;
   /// Chuỗi dùng cho tìm kiếm toàn cục.
   searchText?: (row: T) => string;
+  /// Giá trị ô khi xuất CSV. Bỏ qua cột nếu trả về undefined (ví dụ cột hành động).
+  csv?: (row: T) => string | number | null;
 }
 
 interface Props<T> {
@@ -30,6 +32,10 @@ interface Props<T> {
   empty?: ReactNode;
   initialSort?: { key: string; dir: 'asc' | 'desc' };
   defaultPageSize?: number;
+  /// Hiển thị skeleton khi đang tải lần đầu.
+  loading?: boolean;
+  /// Bật nút "Xuất CSV". Tên file (không cần đuôi .csv).
+  exportName?: string;
 }
 
 export function DataTable<T>({
@@ -43,6 +49,8 @@ export function DataTable<T>({
   empty = 'Không có dữ liệu.',
   initialSort,
   defaultPageSize = 20,
+  loading = false,
+  exportName,
 }: Props<T>) {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(
     initialSort ?? null,
@@ -105,8 +113,28 @@ export function DataTable<T>({
     );
   }
 
+  function exportCsv() {
+    const csvCols = columns.filter((c) => c.csv);
+    if (csvCols.length === 0) return;
+    const headers = csvCols.map((c) => (typeof c.header === 'string' ? c.header : c.key));
+    // Xuất toàn bộ dữ liệu đã lọc/sắp xếp (không chỉ trang hiện tại).
+    const body = sorted.map((r) => csvCols.map((c) => c.csv!(r)));
+    downloadCsv(exportName ?? 'export', headers, body);
+  }
+
+  const hasCsv = Boolean(exportName) && columns.some((c) => c.csv);
+
+  if (loading) {
+    return <TableSkeleton cols={columns.length + (selectable ? 1 : 0)} />;
+  }
+
   return (
     <div>
+      {hasCsv && (
+        <div className="toolbar end" style={{ marginBottom: 8 }}>
+          <ExportButton onExport={exportCsv} disabled={total === 0} />
+        </div>
+      )}
       {selectable && selected.size > 0 && (
         <div className="toolbar" style={{ marginBottom: 8 }}>
           <span className="badge info plain">{selected.size} đã chọn</span>

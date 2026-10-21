@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { api } from '../api/client.ts';
 import type { Brand, Product } from '../api/types.ts';
 import { type Column, DataTable } from '../components/DataTable.tsx';
-import { IconPlus } from '../components/icons.tsx';
-import { HoverTip, SearchInput, Segmented, StatusBadge } from '../components/ui.tsx';
+import { IconBox, IconPlus } from '../components/icons.tsx';
+import { EmptyState, HoverTip, SearchInput, Segmented, StatusBadge } from '../components/ui.tsx';
 import { useUi } from '../components/UiProvider.tsx';
 import { useResource } from '../lib/useResource.ts';
 
@@ -120,6 +120,7 @@ export function ProductsPage({ canEdit }: { canEdit: boolean }) {
       key: 'name',
       header: 'Sản phẩm',
       searchText: (p) => `${p.name} ${p.id} ${p.slug}`,
+      csv: (p) => p.name,
       render: (p) => (
         <HoverTip
           label={<strong>{p.name}</strong>}
@@ -132,25 +133,38 @@ export function ProductsPage({ canEdit }: { canEdit: boolean }) {
         />
       ),
     },
-    { key: 'brand_id', header: 'Thương hiệu', render: (p) => brandName.get(p.brand_id) ?? p.brand_id },
-    { key: 'kind', header: 'Loại', render: (p) => <span className="badge plain">{KIND_LABEL[p.kind]}</span> },
-    { key: 'region', header: 'Khu vực', render: (p) => p.region ?? '—' },
+    {
+      key: 'brand_id',
+      header: 'Thương hiệu',
+      csv: (p) => brandName.get(p.brand_id) ?? p.brand_id,
+      render: (p) => brandName.get(p.brand_id) ?? p.brand_id,
+    },
+    {
+      key: 'kind',
+      header: 'Loại',
+      csv: (p) => KIND_LABEL[p.kind],
+      render: (p) => <span className="badge plain">{KIND_LABEL[p.kind]}</span>,
+    },
+    { key: 'region', header: 'Khu vực', csv: (p) => p.region ?? '', render: (p) => p.region ?? '—' },
     {
       key: 'max_spread_pct',
       header: 'Ngưỡng spread',
       numeric: true,
+      csv: (p) => p.max_spread_pct,
       render: (p) => `${p.max_spread_pct}%`,
     },
     {
       key: 'max_change_pct',
       header: 'Ngưỡng biến động',
       numeric: true,
+      csv: (p) => p.max_change_pct,
       render: (p) => `${p.max_change_pct}%`,
     },
     {
       key: 'active',
       header: 'Trạng thái',
       sortValue: (p) => p.active,
+      csv: (p) => (p.active ? 'Đang hiện' : 'Đã ẩn'),
       render: (p) => <StatusBadge status={p.active ? 'active' : 'ignored'} />,
     },
     ...(canEdit
@@ -269,8 +283,28 @@ export function ProductsPage({ canEdit }: { canEdit: boolean }) {
           rowKey={(p) => p.id}
           search={search}
           selectable={canEdit}
+          loading={products.loading && !products.data}
+          exportName="san-pham"
           initialSort={{ key: 'brand_id', dir: 'asc' }}
-          empty="Không có sản phẩm khớp bộ lọc."
+          empty={
+            <EmptyState
+              icon={<IconBox size={28} />}
+              title={search || status !== 'all' ? 'Không có sản phẩm khớp bộ lọc.' : 'Chưa có sản phẩm nào.'}
+              hint={
+                search || status !== 'all'
+                  ? 'Thử xóa bớt từ khóa hoặc đổi bộ lọc trạng thái.'
+                  : 'Thêm sản phẩm đầu tiên để bắt đầu đối soát giá.'
+              }
+              action={
+                canEdit && !search && status === 'all' ? (
+                  <button className="btn primary" onClick={() => setShowForm(true)}>
+                    <IconPlus size={16} />
+                    Thêm sản phẩm
+                  </button>
+                ) : undefined
+              }
+            />
+          }
           bulkActions={
             canEdit ? (keys) => <button className="btn sm danger" onClick={() => bulkHide(keys)}>Ẩn đã chọn</button> : undefined
           }

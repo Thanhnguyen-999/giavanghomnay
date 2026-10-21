@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { type Column, DataTable } from '../components/DataTable.tsx';
-import { HoverTip, SearchInput, formatDateTime, timeAgo } from '../components/ui.tsx';
+import { EmptyState, HoverTip, SearchInput, formatDateTime, timeAgo } from '../components/ui.tsx';
+import { IconHistory } from '../components/icons.tsx';
 import { useResource } from '../lib/useResource.ts';
 
 interface AuditRow {
@@ -21,13 +22,25 @@ export function AuditPage() {
       key: 'at',
       header: 'Thời điểm',
       sortValue: (a) => a.at,
+      csv: (a) => formatDateTime(a.at),
       render: (a) => <HoverTip label={timeAgo(a.at)} rows={[['Chính xác', formatDateTime(a.at)]]} />,
     },
-    { key: 'actor', header: 'Người thực hiện', searchText: (a) => `${a.actor} ${a.action} ${a.entity} ${a.entity_id}` },
-    { key: 'action', header: 'Hành động', render: (a) => <span className="badge plain">{a.action}</span> },
+    {
+      key: 'actor',
+      header: 'Người thực hiện',
+      csv: (a) => a.actor,
+      searchText: (a) => `${a.actor} ${a.action} ${a.entity} ${a.entity_id}`,
+    },
+    {
+      key: 'action',
+      header: 'Hành động',
+      csv: (a) => a.action,
+      render: (a) => <span className="badge plain">{a.action}</span>,
+    },
     {
       key: 'entity',
       header: 'Đối tượng',
+      csv: (a) => `${a.entity}:${a.entity_id}`,
       render: (a) => (
         <span className="mono">
           {a.entity}:{a.entity_id}
@@ -56,8 +69,16 @@ export function AuditPage() {
           rows={audit.data ?? []}
           rowKey={(a) => String(a.id)}
           search={search}
+          loading={audit.loading && !audit.data}
+          exportName="audit-log"
           initialSort={{ key: 'at', dir: 'desc' }}
-          empty="Chưa có bản ghi."
+          empty={
+            <EmptyState
+              icon={<IconHistory size={28} />}
+              title={search ? 'Không có bản ghi khớp bộ lọc.' : 'Chưa có bản ghi.'}
+              hint={search ? 'Thử từ khóa khác.' : 'Mọi thao tác thay đổi dữ liệu sẽ xuất hiện ở đây.'}
+            />
+          }
         />
       </div>
     </>
