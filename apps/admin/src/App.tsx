@@ -1,6 +1,23 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { ApiError, api, getAdminToken, setAdminToken } from './api/client.ts';
-import type { Me } from './api/types.ts';
+import type { Me, Review } from './api/types.ts';
+import {
+  IconAlert,
+  IconBox,
+  IconClipboard,
+  IconFeed,
+  IconGauge,
+  IconHistory,
+  IconLink,
+  IconLogout,
+  IconMenu,
+  IconMoon,
+  IconShield,
+  IconSun,
+  IconTag,
+  IconUsers,
+} from './components/icons.tsx';
+import { useResource } from './lib/useResource.ts';
 import { AdminsPage } from './pages/AdminsPage.tsx';
 import { AuditPage } from './pages/AuditPage.tsx';
 import { BrandsPage } from './pages/BrandsPage.tsx';
@@ -11,25 +28,64 @@ import { ProductsPage } from './pages/ProductsPage.tsx';
 import { ReviewsPage } from './pages/ReviewsPage.tsx';
 import { SourcesPage } from './pages/SourcesPage.tsx';
 
+type Role = Me['role'];
+
 interface NavItem {
   path: string;
   label: string;
-  minRole: Me['role'];
+  minRole: Role;
+  icon: (p: { size?: number }) => ReactNode;
+  /// Hiển thị badge số (vd số review chờ).
+  badgeKey?: 'reviews';
+}
+interface NavGroup {
+  title: string;
+  items: NavItem[];
 }
 
-const NAV: NavItem[] = [
-  { path: 'overview', label: 'Tổng quan', minRole: 'viewer' },
-  { path: 'brands', label: 'Thương hiệu', minRole: 'viewer' },
-  { path: 'products', label: 'Sản phẩm', minRole: 'viewer' },
-  { path: 'sources', label: 'Nguồn dữ liệu', minRole: 'viewer' },
-  { path: 'mappings', label: 'Gán nhãn', minRole: 'viewer' },
-  { path: 'reviews', label: 'Kiểm duyệt giá', minRole: 'viewer' },
-  { path: 'crawl-runs', label: 'Nhật ký crawl', minRole: 'viewer' },
-  { path: 'admins', label: 'Quản trị viên', minRole: 'owner' },
-  { path: 'audit', label: 'Audit log', minRole: 'owner' },
+const NAV: NavGroup[] = [
+  {
+    title: 'Tổng quan',
+    items: [{ path: 'overview', label: 'Bảng điều khiển', minRole: 'viewer', icon: IconGauge }],
+  },
+  {
+    title: 'Danh mục',
+    items: [
+      { path: 'brands', label: 'Thương hiệu', minRole: 'viewer', icon: IconTag },
+      { path: 'products', label: 'Sản phẩm', minRole: 'viewer', icon: IconBox },
+    ],
+  },
+  {
+    title: 'Dữ liệu & nguồn',
+    items: [
+      { path: 'sources', label: 'Nguồn dữ liệu', minRole: 'viewer', icon: IconFeed },
+      { path: 'mappings', label: 'Gán nhãn', minRole: 'viewer', icon: IconLink },
+      { path: 'crawl-runs', label: 'Nhật ký crawl', minRole: 'viewer', icon: IconHistory },
+    ],
+  },
+  {
+    title: 'Kiểm duyệt',
+    items: [
+      {
+        path: 'reviews',
+        label: 'Duyệt giá',
+        minRole: 'viewer',
+        icon: IconAlert,
+        badgeKey: 'reviews',
+      },
+    ],
+  },
+  {
+    title: 'Hệ thống',
+    items: [
+      { path: 'admins', label: 'Quản trị viên', minRole: 'owner', icon: IconUsers },
+      { path: 'audit', label: 'Audit log', minRole: 'owner', icon: IconClipboard },
+    ],
+  },
 ];
 
 const RANK = { viewer: 1, editor: 2, owner: 3 } as const;
+const ALL_ITEMS = NAV.flatMap((g) => g.items);
 
 function useHashRoute(): string {
   const [hash, setHash] = useState(() => window.location.hash.slice(1) || 'overview');
@@ -39,6 +95,15 @@ function useHashRoute(): string {
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
   return hash;
+}
+
+function useTheme(): [string, () => void] {
+  const [theme, setTheme] = useState(() => localStorage.getItem('admin_theme') ?? 'dark');
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('admin_theme', theme);
+  }, [theme]);
+  return [theme, () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))];
 }
 
 export function App() {
@@ -54,106 +119,163 @@ export function App() {
     setNeedLogin(false);
     api
       .get<Me>('/admin/v1/me')
-      .then((m) => {
-        if (!cancelled) setMe(m);
-      })
+      .then((m) => !cancelled && setMe(m))
       .catch((e: unknown) => {
         if (cancelled) return;
-        if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-          setNeedLogin(true); // cần nhập token
-        } else {
-          setError(e instanceof Error ? e.message : String(e));
-        }
+        if (e instanceof ApiError && (e.status === 401 || e.status === 403)) setNeedLogin(true);
+        else setError(e instanceof Error ? e.message : String(e));
       });
     return () => {
       cancelled = true;
     };
   }, [attempt]);
 
-  if (needLogin) {
-    return <TokenGate onSubmit={() => setAttempt((a) => a + 1)} />;
-  }
-  if (error) {
+  if (needLogin) return <TokenGate onSubmit={() => setAttempt((a) => a + 1)} />;
+  if (error)
     return (
-      <div className="main">
-        <h2>Không truy cập được</h2>
-        <p className="error">{error}</p>
+      <div className="gate">
+        <div className="card">
+          <h2>Không truy cập được</h2>
+          <p className="error">{error}</p>
+        </div>
       </div>
     );
-  }
-  if (!me) return <div className="main">Đang tải…</div>;
+  if (!me) return <Spinner />;
 
-  const canSee = (item: NavItem) => RANK[me.role] >= RANK[item.minRole];
-  const current = NAV.find((n) => n.path === route && canSee(n)) ?? NAV[0]!;
+  return <Shell me={me} route={route} onLogout={() => setAttempt((a) => a + 1)} />;
+}
+
+function Shell({ me, route, onLogout }: { me: Me; route: string; onLogout: () => void }) {
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('admin_collapsed') === '1');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [theme, toggleTheme] = useTheme();
+
+  // Badge số review chờ duyệt — hiển thị cạnh mục "Duyệt giá".
+  const reviews = useResource<Review[]>('/admin/v1/reviews?status=pending');
+  const pendingReviews = reviews.data?.length ?? 0;
+
+  const canSee = (it: NavItem) => RANK[me.role] >= RANK[it.minRole];
+  const current = ALL_ITEMS.find((n) => n.path === route && canSee(n)) ?? ALL_ITEMS[0]!;
+  const canEdit = RANK[me.role] >= RANK.editor;
+
+  function toggleCollapse() {
+    setCollapsed((c) => {
+      localStorage.setItem('admin_collapsed', c ? '0' : '1');
+      return !c;
+    });
+  }
 
   return (
-    <div className="layout">
-      <aside className="sidebar">
-        <h1>Giá Vàng · Quản trị</h1>
-        <nav>
-          {NAV.filter(canSee).map((n) => (
-            <a key={n.path} href={`#${n.path}`} className={n.path === current.path ? 'active' : ''}>
-              {n.label}
-            </a>
-          ))}
+    <div className={`shell ${collapsed ? 'collapsed' : ''}`}>
+      {mobileOpen && <div className="scrim" onClick={() => setMobileOpen(false)} />}
+      <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
+        <div className="sidebar-brand">
+          <span className="sidebar-logo" aria-hidden>
+            <IconGauge size={18} />
+          </span>
+          <span className="sidebar-title">
+            Giá Vàng
+            <small>Trang quản trị</small>
+          </span>
+        </div>
+        <nav className="sidebar-nav">
+          {NAV.map((group) => {
+            const items = group.items.filter(canSee);
+            if (items.length === 0) return null;
+            return (
+              <div key={group.title}>
+                <div className="nav-section-label">{group.title}</div>
+                {items.map((it) => {
+                  const Icon = it.icon;
+                  const badge = it.badgeKey === 'reviews' && pendingReviews > 0 ? pendingReviews : null;
+                  return (
+                    <a
+                      key={it.path}
+                      href={`#${it.path}`}
+                      className={`nav-link ${it.path === current.path ? 'active' : ''}`}
+                      data-label={it.label}
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      <span className="nav-icon" aria-hidden>
+                        <Icon size={18} />
+                      </span>
+                      <span>{it.label}</span>
+                      {badge != null && <span className="nav-badge">{badge}</span>}
+                    </a>
+                  );
+                })}
+              </div>
+            );
+          })}
         </nav>
-        <div className="me">
-          {me.email}
-          <br />
-          vai trò: {me.role}
-          <br />
-          <button
-            style={{ marginTop: 8, fontSize: 12, padding: '4px 8px' }}
-            onClick={() => {
-              setAdminToken('');
-              setMe(null);
-              setAttempt((a) => a + 1);
-            }}
-          >
-            Đăng xuất
-          </button>
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            <span className="sidebar-avatar">{me.email.charAt(0)}</span>
+            <span className="sidebar-user-info">
+              <span className="email">{me.email}</span>
+              <span className="role">Vai trò: {me.role}</span>
+            </span>
+          </div>
         </div>
       </aside>
+
+      <header className="topbar">
+        <button
+          className="btn icon ghost menu-toggle"
+          onClick={() => setMobileOpen((o) => !o)}
+          aria-label="Mở menu"
+        >
+          <IconMenu size={18} />
+        </button>
+        <button
+          className="btn icon ghost"
+          onClick={toggleCollapse}
+          aria-label={collapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+          title="Thu gọn / mở rộng menu"
+          style={{ display: 'none' }}
+        />
+        <div className="topbar-crumb">
+          Quản trị <span aria-hidden>/</span> <strong>{current.label}</strong>
+        </div>
+        <span className="topbar-spacer" />
+        <button
+          className="btn icon ghost"
+          onClick={toggleCollapse}
+          aria-label="Thu gọn menu"
+          title="Thu gọn / mở rộng menu"
+        >
+          <IconMenu size={18} />
+        </button>
+        <button
+          className="btn icon ghost"
+          onClick={toggleTheme}
+          aria-label="Đổi giao diện sáng/tối"
+          title="Sáng / tối"
+        >
+          {theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+        </button>
+        <button
+          className="btn sm ghost"
+          onClick={() => {
+            setAdminToken('');
+            onLogout();
+          }}
+          title="Đăng xuất"
+        >
+          <IconLogout size={16} />
+          <span style={{ marginLeft: 4 }}>Đăng xuất</span>
+        </button>
+      </header>
+
       <main className="main">
-        <Page route={current.path} role={me.role} />
+        <Page route={current.path} role={me.role} canEdit={canEdit} />
       </main>
     </div>
   );
 }
 
-function TokenGate({ onSubmit }: { onSubmit: () => void }) {
-  const [value, setValue] = useState(getAdminToken());
-  return (
-    <div className="main" style={{ maxWidth: 420 }}>
-      <h2>Đăng nhập quản trị</h2>
-      <p className="muted">Nhập token quản trị để truy cập dashboard.</p>
-      <div className="card">
-        <label>Token</label>
-        <input
-          type="password"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="X-Admin-Token"
-        />
-        <p style={{ marginTop: 12 }}>
-          <button
-            className="primary"
-            onClick={() => {
-              setAdminToken(value.trim());
-              onSubmit();
-            }}
-            disabled={!value.trim()}
-          >
-            Vào dashboard
-          </button>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function Page({ route, role }: { route: string; role: Me['role'] }) {
-  const canEdit = RANK[role] >= RANK.editor;
+function Page({ route, role, canEdit }: { route: string; role: Role; canEdit: boolean }) {
+  void role;
   switch (route) {
     case 'overview':
       return <OverviewPage />;
@@ -176,4 +298,54 @@ function Page({ route, role }: { route: string; role: Me['role'] }) {
     default:
       return <OverviewPage />;
   }
+}
+
+function TokenGate({ onSubmit }: { onSubmit: () => void }) {
+  const [value, setValue] = useState(getAdminToken());
+  return (
+    <div className="gate">
+      <div className="card">
+        <div className="logo-lg" aria-hidden>
+          <IconShield size={26} />
+        </div>
+        <h2>Đăng nhập quản trị</h2>
+        <p className="muted" style={{ marginTop: 4 }}>
+          Nhập token quản trị để truy cập bảng điều khiển.
+        </p>
+        <label htmlFor="tok">Token</label>
+        <input
+          id="tok"
+          type="password"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="X-Admin-Token"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && value.trim()) {
+              setAdminToken(value.trim());
+              onSubmit();
+            }
+          }}
+        />
+        <button
+          className="btn primary"
+          style={{ width: '100%', marginTop: 16 }}
+          onClick={() => {
+            setAdminToken(value.trim());
+            onSubmit();
+          }}
+          disabled={!value.trim()}
+        >
+          Vào bảng điều khiển
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <div className="center-pad" style={{ minHeight: '100vh' }}>
+      <div className="spinner" role="status" aria-label="Đang tải" />
+    </div>
+  );
 }
